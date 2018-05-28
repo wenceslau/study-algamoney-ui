@@ -1,89 +1,87 @@
-import { Pessoa } from './../core/model';
-import { Headers, URLSearchParams } from '@angular/http';
+import { URLSearchParams } from '@angular/http';
 import { Injectable } from '@angular/core';
 
-import 'rxjs/add/operator/toPromise';
 import { AuthHttp } from 'angular2-jwt';
+import 'rxjs/add/operator/toPromise';
 
+import { environment } from './../../environments/environment';
+import { Pessoa } from './../core/model';
+
+export class PessoaFiltro {
+  nome: string;
+  pagina = 0;
+  itensPorPagina = 5;
+}
 
 @Injectable()
 export class PessoaService {
 
-  pessoaUrl = 'http://localhost:8080/pessoas';
+  pessoasUrl: string;
 
-  constructor(private http: AuthHttp) { }
-
-  pesquisar(nome: string): Promise<any> {
-
-    console.log('pesquisar ' + nome);
-
-
-   const param = new URLSearchParams();
-
-    if (nome) {
-      param.set('nome', nome);
-    }
-
-    return this.http.get(`${this.pessoaUrl}`,
-      { search: param })
-      .toPromise()
-      .then(response => {
-
-        const responseJson = response.json();
-
-        const resultado = {
-          pessoas: responseJson,
-        };
-        return resultado;
-      });
+  constructor(private http: AuthHttp) {
+    this.pessoasUrl = `${environment.apiUrl}/pessoas`;
   }
 
-  listarTodas() {
+  pesquisar(filtro: PessoaFiltro): Promise<any> {
+    const params = new URLSearchParams();
 
-    return this.http.get(`${this.pessoaUrl}?resumo`)
+    params.set('page', filtro.pagina.toString());
+    params.set('size', filtro.itensPorPagina.toString());
+
+    if (filtro.nome) {
+      params.set('nome', filtro.nome);
+    }
+
+    return this.http.get(`${this.pessoasUrl}`, { search: params })
       .toPromise()
-      .then(response => response.json());
+      .then(response => {
+        const responseJson = response.json();
+        const pessoas = responseJson.content;
+
+        const resultado = {
+          pessoas,
+          total: responseJson.totalElements
+        };
+
+        return resultado;
+      })
+  }
+
+  listarTodas(): Promise<any> {
+    return this.http.get(this.pessoasUrl)
+      .toPromise()
+      .then(response => response.json().content);
   }
 
   excluir(codigo: number): Promise<void> {
-    return this.http.delete(`${this.pessoaUrl}/${codigo}`)
+    return this.http.delete(`${this.pessoasUrl}/${codigo}`)
       .toPromise()
       .then(() => null);
   }
 
-  alteraStatus(codigo: number, status: boolean): Promise<void> {
-
-    return this.http.put(`${this.pessoaUrl}/${codigo}/ativo`, status)
+  mudarStatus(codigo: number, ativo: boolean): Promise<void> {
+    return this.http.put(`${this.pessoasUrl}/${codigo}/ativo`, ativo)
       .toPromise()
       .then(() => null);
   }
 
-  salvar(pessoa: Pessoa): Promise<Pessoa> {
-    return this.http.post(`${this.pessoaUrl}`, JSON.stringify(pessoa))
+  adicionar(pessoa: Pessoa): Promise<Pessoa> {
+    return this.http.post(this.pessoasUrl, JSON.stringify(pessoa))
       .toPromise()
       .then(response => response.json());
   }
 
-  atulizar(pessoa: Pessoa): Promise<Pessoa> {
-
-    return this.http.put(`${this.pessoaUrl}/${pessoa.codigo}`, JSON.stringify(pessoa))
+  atualizar(pessoa: Pessoa): Promise<Pessoa> {
+    return this.http.put(`${this.pessoasUrl}/${pessoa.codigo}`,
+        JSON.stringify(pessoa))
       .toPromise()
-      .then(response => {
-        const pessoaAlterado = response.json() as Pessoa;
-        return pessoaAlterado;
-      });
+      .then(response => response.json() as Pessoa);
   }
 
   buscarPorCodigo(codigo: number): Promise<Pessoa> {
-    const param = new URLSearchParams();
-
-    param.set('codigo', codigo.toString());
-
-    return this.http.get(`${this.pessoaUrl}/${codigo}`)
+    return this.http.get(`${this.pessoasUrl}/${codigo}`)
       .toPromise()
-      .then(response => {
-        const pessoa = response.json() as Pessoa;
-        return pessoa;
-      });
+      .then(response => response.json() as Pessoa);
   }
+
 }

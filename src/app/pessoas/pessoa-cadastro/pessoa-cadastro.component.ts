@@ -1,11 +1,13 @@
 import { Title } from '@angular/platform-browser';
-import { Router, ActivatedRoute } from '@angular/router';
-import { ErrorService } from './../../core/error.service';
-import { ToastyService } from 'ng2-toasty';
-import { PessoaService } from './../pessoa.service';
-import { FormControl } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
-import { Pessoa } from '../../core/model';
+import { FormControl } from '@angular/forms';
+
+import { ToastyService } from 'ng2-toasty';
+
+import { ErrorHandlerService } from './../../core/error-handler.service';
+import { PessoaService } from './../pessoa.service';
+import { Pessoa } from './../../core/model';
 
 @Component({
   selector: 'app-pessoa-cadastro',
@@ -19,7 +21,7 @@ export class PessoaCadastroComponent implements OnInit {
   constructor(
     private pessoaService: PessoaService,
     private toasty: ToastyService,
-    private error: ErrorService,
+    private errorHandler: ErrorHandlerService,
     private route: ActivatedRoute,
     private router: Router,
     private title: Title
@@ -28,16 +30,24 @@ export class PessoaCadastroComponent implements OnInit {
   ngOnInit() {
     const codigoPessoa = this.route.snapshot.params['codigo'];
 
-    this.title.setTitle('Novo Lancamento');
+    this.title.setTitle('Nova pessoa');
 
     if (codigoPessoa) {
       this.carregarPessoa(codigoPessoa);
     }
   }
 
-
   get editando() {
-    return Boolean(this.pessoa.codigo);
+    return Boolean(this.pessoa.codigo)
+  }
+
+  carregarPessoa(codigo: number) {
+    this.pessoaService.buscarPorCodigo(codigo)
+      .then(pessoa => {
+        this.pessoa = pessoa;
+        this.atualizarTituloEdicao();
+      })
+      .catch(erro => this.errorHandler.handle(erro));
   }
 
   salvar(form: FormControl) {
@@ -49,48 +59,37 @@ export class PessoaCadastroComponent implements OnInit {
   }
 
   adicionarPessoa(form: FormControl) {
-    console.log(this.pessoa);
-    this.pessoaService.salvar(this.pessoa)
-      .then(pessoaAdicionado => {
-        this.toasty.success('Pessoa salvo com sucesso');
-        // form.reset();
-        // this.lancamento = new Lancamento();
-        this.router.navigate(['/pessoas', pessoaAdicionado.codigo]);
+    this.pessoaService.adicionar(this.pessoa)
+      .then(pessoaAdicionada => {
+        this.toasty.success('Pessoa adicionada com sucesso!');
+        this.router.navigate(['/pessoas', pessoaAdicionada.codigo]);
       })
-      .catch(erro => this.error.handle(erro));
+      .catch(erro => this.errorHandler.handle(erro));
   }
 
   atualizarPessoa(form: FormControl) {
-    console.log(this.pessoa);
-    this.pessoaService.atulizar(this.pessoa)
+    this.pessoaService.atualizar(this.pessoa)
       .then(pessoa => {
-        this.toasty.success('Pessoa atualizada com sucesso');
         this.pessoa = pessoa;
-        this.atualizarNome();
+
+        this.toasty.success('Pessoa alterada com sucesso!');
+        this.atualizarTituloEdicao();
       })
-      .catch(erro => this.error.handle(erro));
+      .catch(erro => this.errorHandler.handle(erro));
   }
 
-  novo(form: FormControl) {
+  nova(form: FormControl) {
     form.reset();
-    setTimeout(function () {
+
+    setTimeout(function() {
       this.pessoa = new Pessoa();
     }.bind(this), 1);
-    this.router.navigate(['/pessoas/novo']);
+
+    this.router.navigate(['/pessoas/nova']);
   }
 
-  carregarPessoa(codigo: number) {
-    this.pessoaService.buscarPorCodigo(codigo)
-      .then(lancamento => {
-        this.pessoa = lancamento;
-        this.atualizarNome();
-      })
-      .catch(erro => this.error.handle(erro));
-  }
-
-
-  atualizarNome() {
-    this.title.setTitle('Editar Pessoa: ' + this.pessoa.nome);
+  atualizarTituloEdicao() {
+    this.title.setTitle(`Edição de pessoa: ${this.pessoa.nome}`);
   }
 
 }

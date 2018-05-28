@@ -4,42 +4,40 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { LazyLoadEvent, ConfirmationService } from 'primeng/components/common/api';
 import { ToastyService } from 'ng2-toasty';
 
-import { AuthService } from './../../seguranca/auth.service';
 import { ErrorHandlerService } from './../../core/error-handler.service';
-import { LancamentoService, LancamentoFiltro } from './../lancamento.service';
+import { PessoaFiltro, PessoaService } from './../pessoa.service';
 
 @Component({
-  selector: 'app-lancamentos-pesquisa',
-  templateUrl: './lancamentos-pesquisa.component.html',
-  styleUrls: ['./lancamentos-pesquisa.component.css']
+  selector: 'app-pessoas-pesquisa',
+  templateUrl: './pessoas-pesquisa.component.html',
+  styleUrls: ['./pessoas-pesquisa.component.css']
 })
-export class LancamentosPesquisaComponent implements OnInit {
+export class PessoasPesquisaComponent implements OnInit {
 
   totalRegistros = 0;
-  filtro = new LancamentoFiltro();
-  lancamentos = [];
+  filtro = new PessoaFiltro();
+  pessoas = [];
   @ViewChild('tabela') grid;
 
   constructor(
-    private lancamentoService: LancamentoService,
-    private auth: AuthService,
+    private pessoaService: PessoaService,
     private errorHandler: ErrorHandlerService,
-    private toasty: ToastyService,
     private confirmation: ConfirmationService,
+    private toasty: ToastyService,
     private title: Title
   ) { }
 
   ngOnInit() {
-    this.title.setTitle('Pesquisa de lançamentos');
+    this.title.setTitle('Pesquisa de pessoas');
   }
 
   pesquisar(pagina = 0) {
     this.filtro.pagina = pagina;
 
-    this.lancamentoService.pesquisar(this.filtro)
+    this.pessoaService.pesquisar(this.filtro)
       .then(resultado => {
         this.totalRegistros = resultado.total;
-        this.lancamentos = resultado.lancamentos;
+        this.pessoas = resultado.pessoas;
       })
       .catch(erro => this.errorHandler.handle(erro));
   }
@@ -49,17 +47,17 @@ export class LancamentosPesquisaComponent implements OnInit {
     this.pesquisar(pagina);
   }
 
-  confirmarExclusao(lancamento: any) {
+  confirmarExclusao(pessoa: any) {
     this.confirmation.confirm({
       message: 'Tem certeza que deseja excluir?',
       accept: () => {
-        this.excluir(lancamento);
+        this.excluir(pessoa);
       }
     });
   }
 
-  excluir(lancamento: any) {
-    this.lancamentoService.excluir(lancamento.codigo)
+  excluir(pessoa: any) {
+    this.pessoaService.excluir(pessoa.codigo)
       .then(() => {
         if (this.grid.first === 0) {
           this.pesquisar();
@@ -67,7 +65,20 @@ export class LancamentosPesquisaComponent implements OnInit {
           this.grid.first = 0;
         }
 
-        this.toasty.success('Lançamento excluído com sucesso!');
+        this.toasty.success('Pesssoa excluída com sucesso!');
+      })
+      .catch(erro => this.errorHandler.handle(erro));
+  }
+
+  alternarStatus(pessoa: any): void {
+    const novoStatus = !pessoa.ativo;
+
+    this.pessoaService.mudarStatus(pessoa.codigo, novoStatus)
+      .then(() => {
+        const acao = novoStatus ? 'ativada' : 'desativada';
+
+        pessoa.ativo = novoStatus;
+        this.toasty.success(`Pessoa ${acao} com sucesso!`);
       })
       .catch(erro => this.errorHandler.handle(erro));
   }

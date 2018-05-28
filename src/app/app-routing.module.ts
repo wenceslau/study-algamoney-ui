@@ -1,31 +1,26 @@
 import { NgModule } from '@angular/core';
-import { Routes , RouterModule } from '@angular/router';
+import { Routes, RouterModule } from '@angular/router';
 
-import { LancamentosPesquisaComponent } from './lancamentos/lancamentos-pesquisa/lancamentos-pesquisa.component';
-import { LancamentoCadastroComponent } from './lancamentos/lancamento-cadastro/lancamento-cadastro.component';
-import { PessoaPesquisaComponent } from './pessoas/pessoa-pesquisa/pessoa-pesquisa.component';
+import { NaoAutorizadoComponent } from './core/nao-autorizado.component';
 import { PaginaNaoEncontradaComponent } from './core/pagina-nao-encontrada.component';
-import { LancamentoRoutingModule } from './lancamentos/lancamento-routing.module';
-import { PessoaRoutingModule } from './pessoas/pessoas-routing.module';
-import { SegurancaRoutingModule } from './seguranca/seguranca-routing.module';
+import { PessoasPesquisaComponent } from './pessoas/pessoas-pesquisa/pessoas-pesquisa.component';
+import { LancamentoCadastroComponent } from './lancamentos/lancamento-cadastro/lancamento-cadastro.component';
+import { LancamentosPesquisaComponent } from './lancamentos/lancamentos-pesquisa/lancamentos-pesquisa.component';
 
 const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'lancamentos', loadChildren: 'app/lancamentos/lancamentos.module#LancamentosModule' },
+  { path: 'pessoas', loadChildren: 'app/pessoas/pessoas.module#PessoasModule' },
+
+  { path: '', redirectTo: 'lancamentos', pathMatch: 'full' },
+  { path: 'nao-autorizado', component: NaoAutorizadoComponent },
   { path: 'pagina-nao-encontrada', component: PaginaNaoEncontradaComponent },
-  { path: '**', redirectTo: 'pagina-nao-encontrada' },
+  { path: '**', redirectTo: 'pagina-nao-encontrada' }
 ];
 
 @NgModule({
-
   imports: [
-    LancamentoRoutingModule,
-    PessoaRoutingModule,
-    SegurancaRoutingModule,
-    RouterModule.forRoot(routes),
-
+    RouterModule.forRoot(routes)
   ],
-  exports: [
-    RouterModule
-  ]
+  exports: [RouterModule]
 })
 export class AppRoutingModule { }

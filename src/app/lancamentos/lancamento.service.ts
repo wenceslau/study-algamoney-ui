@@ -1,16 +1,17 @@
-import { Lancamento } from './../core/model';
-import { Headers, URLSearchParams } from '@angular/http';
+import { URLSearchParams } from '@angular/http';
 import { Injectable } from '@angular/core';
 
+import { AuthHttp } from 'angular2-jwt';
+import * as moment from 'moment';
 import 'rxjs/add/operator/toPromise';
 
-import * as moment from 'moment';
-import { AuthHttp } from 'angular2-jwt';
+import { environment } from './../../environments/environment';
+import { Lancamento } from './../core/model';
 
 export class LancamentoFiltro {
   descricao: string;
-  dataVencimentoDe: Date;
-  dataVencimentoAte: Date;
+  dataVencimentoInicio: Date;
+  dataVencimentoFim: Date;
   pagina = 0;
   itensPorPagina = 5;
 }
@@ -18,30 +19,34 @@ export class LancamentoFiltro {
 @Injectable()
 export class LancamentoService {
 
-  lancamentosUrl = 'http://localhost:8080/lancamentos';
+  lancamentosUrl: string;
 
-  constructor(private http: AuthHttp) { }
+  constructor(private http: AuthHttp) {
+    this.lancamentosUrl = `${environment.apiUrl}/lancamentos`;
+  }
 
   pesquisar(filtro: LancamentoFiltro): Promise<any> {
+    const params = new URLSearchParams();
 
-    const param = new URLSearchParams();
-
-    param.set('page', filtro.pagina.toString());
-    param.set('size', filtro.itensPorPagina.toString());
+    params.set('page', filtro.pagina.toString());
+    params.set('size', filtro.itensPorPagina.toString());
 
     if (filtro.descricao) {
-      param.set('descricao', filtro.descricao);
-    }
-    if (filtro.dataVencimentoDe) {
-      param.set('dataVencimentoDe', moment(filtro.dataVencimentoDe).format('YYYY-MM-DD'));
-    }
-    if (filtro.dataVencimentoAte) {
-      param.set('dataVencimentoAte', moment(filtro.dataVencimentoAte).format('YYYY-MM-DD'));
+      params.set('descricao', filtro.descricao);
     }
 
+    if (filtro.dataVencimentoInicio) {
+      params.set('dataVencimentoDe',
+        moment(filtro.dataVencimentoInicio).format('YYYY-MM-DD'));
+    }
+
+    if (filtro.dataVencimentoFim) {
+      params.set('dataVencimentoAte',
+        moment(filtro.dataVencimentoFim).format('YYYY-MM-DD'));
+    }
 
     return this.http.get(`${this.lancamentosUrl}?resumo`,
-      { search: param })
+        { search: params })
       .toPromise()
       .then(response => {
         const responseJson = response.json();
@@ -51,26 +56,27 @@ export class LancamentoService {
           lancamentos,
           total: responseJson.totalElements
         };
+
         return resultado;
       });
   }
 
   excluir(codigo: number): Promise<void> {
-
     return this.http.delete(`${this.lancamentosUrl}/${codigo}`)
       .toPromise()
       .then(() => null);
   }
 
-  salvar(lancamento: Lancamento): Promise<Lancamento> {
-    return this.http.post(`${this.lancamentosUrl}`, JSON.stringify(lancamento))
+  adicionar(lancamento: Lancamento): Promise<Lancamento> {
+    return this.http.post(this.lancamentosUrl,
+        JSON.stringify(lancamento))
       .toPromise()
       .then(response => response.json());
   }
 
-  atulizar(lancamento: Lancamento): Promise<Lancamento> {
-
-    return this.http.put(`${this.lancamentosUrl}/${lancamento.codigo}`, JSON.stringify(lancamento))
+  atualizar(lancamento: Lancamento): Promise<Lancamento> {
+    return this.http.put(`${this.lancamentosUrl}/${lancamento.codigo}`,
+        JSON.stringify(lancamento))
       .toPromise()
       .then(response => {
         const lancamentoAlterado = response.json() as Lancamento;
@@ -82,10 +88,6 @@ export class LancamentoService {
   }
 
   buscarPorCodigo(codigo: number): Promise<Lancamento> {
-    const param = new URLSearchParams();
-
-    param.set('codigo', codigo.toString());
-
     return this.http.get(`${this.lancamentosUrl}/${codigo}`)
       .toPromise()
       .then(response => {
@@ -99,7 +101,7 @@ export class LancamentoService {
 
   private converterStringsParaDatas(lancamentos: Lancamento[]) {
     for (const lancamento of lancamentos) {
-      lancamento.dataVencimeto = moment(lancamento.dataVencimeto,
+      lancamento.dataVencimento = moment(lancamento.dataVencimento,
         'YYYY-MM-DD').toDate();
 
       if (lancamento.dataPagamento) {
